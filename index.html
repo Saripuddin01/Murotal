@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Murottal Sync v3 - Fixed</title>
+    <style>
+        body { margin: 0; background: #1a1a1a; color: white; font-family: 'Arial', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #display-container { text-align: center; width: 85%; padding: 20px; border-radius: 20px; background: rgba(0,0,0,0.3); }
+        .arabic { font-size: 50px; margin-bottom: 20px; direction: rtl; line-height: 1.8; color: #fbbf24; min-height: 150px; transition: 0.3s; }
+        .translation { font-size: 22px; color: #cbd5e1; min-height: 60px; }
+        .controls { margin-top: 30px; padding: 20px; background: #334155; border-radius: 12px; display: flex; gap: 10px; align-items: center; }
+        input { width: 60px; padding: 8px; border-radius: 5px; border: none; font-size: 16px; }
+        button { padding: 8px 20px; cursor: pointer; background: #0ea5e9; border: none; color: white; font-weight: bold; border-radius: 5px; }
+        #status { margin-top: 10px; font-size: 12px; color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+    <div id="display-container">
+        <div id="quran-text" class="arabic">Masukkan Nomor Surat</div>
+        <div id="translation-text" class="translation">Lalu klik Load Data</div>
+    </div>
+
+    <div class="controls">
+        <input type="number" id="surah-num" value="1" min="1" max="114">
+        <button onclick="initMurottal()">LOAD DATA</button>
+        <audio id="player" controls></audio>
+    </div>
+    <div id="status"></div>
+
+    <script>
+        let verses = [];
+        const player = document.getElementById('player');
+        const txtAr = document.getElementById('quran-text');
+        const txtId = document.getElementById('translation-text');
+        const status = document.getElementById('status');
+
+        async function initMurottal() {
+            const id = document.getElementById('surah-num').value;
+            status.innerText = "Menghubungkan ke API...";
+            
+            try {
+                // 1. Ambil Info Audio & Segments (Mishary Rashid)
+                const resAudio = await fetch(`https://api.quran.com/api/v4/chapter_recitations/7/${id}`);
+                const dataAudio = await resAudio.json();
+                player.src = dataAudio.audio_file.audio_url;
+
+                // 2. Ambil Teks Arab & Terjemahan Sekaligus
+                // Menggunakan endpoint /verses/by_chapter agar data lebih terstruktur
+                const resContent = await fetch(`https://api.quran.com/api/v4/verses/by_chapter/${id}?language=id&words=false&translations=33&fields=text_uthmani`);
+                const dataContent = await resContent.json();
+
+                // 3. Ambil Segments Detail untuk Timing
+                const resSegments = await fetch(`https://api.quran.com/api/v4/recitations/7/by_chapter/${id}?segments=true`);
+                const dataSegments = await resSegments.json();
+                const segments = dataSegments.audio_files[0].segments;
+
+                // Gabungkan
+                verses = dataContent.verses.map((v, i) => ({
+                    text: v.text_uthmani,
+                    trans: v.translations[0].text.replace(/<[^>]*>/g, ''),
+                    start: segments[i] ? segments[i][1] / 1000 : 0
+                }));
+
+                status.innerText = `Berhasil memuat ${verses.length} ayat. Silakan Play.`;
+                txtAr.innerText = "Siap!";
+                txtId.innerText = "Klik tombol Play pada pemutar audio.";
+
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error: Pastikan koneksi internet aktif.";
+                txtAr.innerText = "Gagal Memuat";
+            }
+        }
+
+        player.ontimeupdate = () => {
+            const now = player.currentTime;
+            // Cari ayat yang start-nya paling mendekati tapi tidak melebihi waktu sekarang
+            const current = verses.filter(v => now >= v.start).pop();
+            
+            if (current && txtAr.innerText !== current.text) {
+                txtAr.innerText = current.text;
+                txtId.innerText = current.trans;
+            }
+        };
+    </script>
+</body>
+</html>
