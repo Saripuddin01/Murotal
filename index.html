@@ -17,7 +17,8 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
-            height: 100vh; width: 100vw; overflow: hidden;
+            height: 100dvh; /* PERBAIKAN: Menggunakan dvh agar tidak tertutup navbar bawah HP */
+            width: 100vw; overflow: hidden;
             background: var(--surface); color: var(--text);
             font-family: 'Inter', 'Tajawal', sans-serif;
             display: flex; flex-direction: column;
@@ -46,7 +47,7 @@
         #render-canvas { width: 100%; height: 100%; display: block; }
 
         /* PANEL */
-        #panel { flex: 0 0 52vh; overflow-y: auto; background: var(--surface2); border-top: 1px solid var(--border); }
+        #panel { flex: 0 0 48vh; overflow-y: auto; background: var(--surface2); border-top: 1px solid var(--border); }
         #panel::-webkit-scrollbar { width: 4px; }
         #panel::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.2); border-radius: 2px; }
 
@@ -163,10 +164,14 @@
         /* ── AUDIO BAR ── */
         #audio-bar {
             flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border);
-            padding: 50px 14px; display: flex; flex-direction: column; gap: 6px;
+            padding: 10px 14px 16px; /* PERBAIKAN: Padding bawah ditambah agar tidak tertutup */
+            display: flex; flex-direction: column; gap: 10px;
         }
         #audio-row1 { display: flex; align-items: center; gap: 8px; }
-        audio { flex: 1; min-width: 0; height: 30px; border-radius: 4px; }
+        
+        /* PERBAIKAN: Tinggi audio diubah menjadi minimal 44px agar player bawaan muncul penuh */
+        audio { flex: 1; min-width: 0; height: 44px; border-radius: 4px; outline: none; }
+        
         #rec-dot { display: none; align-items: center; gap: 5px; font-size: 10px; color: var(--red); letter-spacing: 1px; flex-shrink: 0; }
         #rec-dot.on { display: flex; }
         #rec-dot .dot { width: 7px; height: 7px; background: var(--red); border-radius: 50%; animation: blink 1s infinite; }
@@ -178,7 +183,7 @@
         #status.ok { color: var(--green); }
         #status.err { color: var(--red); }
         #status.warn { color: #e3b341; }
-        #prog-wrap { height: 2px; background: var(--border); border-radius: 2px; display: none; }
+        #prog-wrap { height: 2px; background: var(--border); border-radius: 2px; display: none; margin-top: -4px; }
         #prog-wrap.on { display: block; }
         #prog-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width .3s; }
     </style>
@@ -369,6 +374,7 @@
         <audio id="player" controls crossorigin="anonymous"></audio>
         <div id="rec-dot"><div class="dot"></div>REC</div>
     </div>
+    <div id="prog-wrap"><div id="prog-fill" style="width:0%"></div></div>
     <div id="audio-row2">
         <div class="btns">
             <button class="btn btn-red" id="btn-rec" onclick="toggleRec()" disabled>⏺ Render HD</button>
@@ -376,7 +382,6 @@
         </div>
         <div id="status">Menunggu instruksi...</div>
     </div>
-    <div id="prog-wrap"><div id="prog-fill" style="width:0%"></div></div>
 </div>
 
 <script>
@@ -706,7 +711,6 @@ function drawLines(lines,cx,y0,sz,fam,col,lh,isAr,bold,ital,alpha){
 function drawVerse(arabic,trans,num){
     if(!arabic){drawIdle(W/2,H/2);return;}
     
-    // Margin disesuaikan agar badge nomor tidak keluar dari layar
     const cx=W/2, mAr=mode==='landscape'?220:140, mTr=mode==='landscape'?220:80;
     
     ctx.font=`${italAr?'italic':'normal'} ${boldAr?'bold':'400'} ${szAr}px "${fontAr}"`;
@@ -717,24 +721,21 @@ function drawVerse(arabic,trans,num){
     let sY=(H-(arBH+gap+trBH))/2; if(mode==='portrait')sY-=20; if(sY<110)sY=110;
     const arY=sY+posAr;
 
-    // Gambar teks Arab
     ctx.direction='rtl';
     drawLines(arL,cx,arY+szAr*0.8,szAr,fontAr,colAr,arH,true,boldAr,italAr,alphaAr);
     ctx.direction='ltr';
 
-    // Perhitungan posisi badge nomor ayat di kiri baris terakhir
     ctx.font=`${italAr?'italic':'normal'} ${boldAr?'bold':'400'} ${szAr}px "${fontAr}"`;
     const lastLine = arL[arL.length-1];
     const lastW = ctx.measureText(lastLine).width;
-    const badgeX = cx - (lastW / 2) - 35; // 35px adalah jarak margin badge ke teks 
-    const badgeY = arY + szAr*0.8 + (arL.length - 1)*arH - (szAr * 0.3); // menyesuaikan tinggi baseline
+    const badgeX = cx - (lastW / 2) - 35;
+    const badgeY = arY + szAr*0.8 + (arL.length - 1)*arH - (szAr * 0.3);
 
     ctx.save();
     ctx.globalAlpha*=alphaAr;
     drawBadge(badgeX, badgeY, num);
     ctx.restore();
 
-    // Gambar Terjemahan
     const trY=sY+arBH+posTr;
     ctx.save();ctx.globalAlpha*=alphaTr;drawOrnLine(cx,trY+gap/2-12,mode==='landscape'?220:170);ctx.restore();
     drawLines(trL,cx,trY+gap+szTr*0.8,szTr,fontTr,colTr,trH,false,boldTr,italTr,alphaTr);
