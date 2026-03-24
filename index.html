@@ -2,87 +2,852 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Murottal Sync v3 - Fixed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Murottal Studio Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Lateef&family=Scheherazade+New&family=Tajawal:wght@300;400;500;700&family=Roboto:wght@400;500&family=Montserrat:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #1a1a1a; color: white; font-family: 'Arial', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #display-container { text-align: center; width: 85%; padding: 20px; border-radius: 20px; background: rgba(0,0,0,0.3); }
-        .arabic { font-size: 50px; margin-bottom: 20px; direction: rtl; line-height: 1.8; color: #fbbf24; min-height: 150px; transition: 0.3s; }
-        .translation { font-size: 22px; color: #cbd5e1; min-height: 60px; }
-        .controls { margin-top: 30px; padding: 20px; background: #334155; border-radius: 12px; display: flex; gap: 10px; align-items: center; }
-        input { width: 60px; padding: 8px; border-radius: 5px; border: none; font-size: 16px; }
-        button { padding: 8px 20px; cursor: pointer; background: #0ea5e9; border: none; color: white; font-weight: bold; border-radius: 5px; }
-        #status { margin-top: 10px; font-size: 12px; color: #94a3b8; }
+        :root {
+            --gold: #c9a84c; --gold-light: #f0d080; --gold-dim: rgba(201,168,76,0.15);
+            --surface: #0d1117; --surface2: #161b22; --surface3: #21262d;
+            --border: rgba(255,255,255,0.07); --border-gold: rgba(201,168,76,0.25);
+            --text: #e6edf3; --text-muted: #7d8590;
+            --green: #3fb950; --green-dim: rgba(63,185,80,0.15);
+            --red: #f85149; --red-dim: rgba(248,81,73,0.15);
+            --r: 8px; --rs: 5px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            height: 100vh; width: 100vw; overflow: hidden;
+            background: var(--surface); color: var(--text);
+            font-family: 'Inter', 'Tajawal', sans-serif;
+            display: flex; flex-direction: column;
+        }
+
+        /* HEADER */
+        #header {
+            flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+            padding: 7px 16px; background: var(--surface2); border-bottom: 1px solid var(--border);
+        }
+        .logo { font-family: 'Amiri', serif; font-size: 16px; color: var(--gold); display: flex; align-items: center; gap: 8px; }
+        .logo small { font-family: 'Inter', sans-serif; font-size: 9px; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+        .badge { background: var(--gold-dim); border: 1px solid var(--border-gold); border-radius: 20px; padding: 2px 10px; font-size: 10px; color: var(--gold); letter-spacing: 1px; }
+
+        /* PREVIEW */
+        #top-preview {
+            flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+            padding: 8px; background: #060a0f; overflow: hidden;
+        }
+        #preview-wrap {
+            border: 1px solid var(--border-gold); border-radius: var(--r); overflow: hidden;
+            background: #000; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 16px 48px rgba(0,0,0,.9);
+        }
+        #preview-wrap.landscape { width: 100%; max-width: 660px; aspect-ratio: 16/9; }
+        #preview-wrap.portrait  { height: 100%; max-height: 840px; aspect-ratio: 9/16; }
+        #render-canvas { width: 100%; height: 100%; display: block; }
+
+        /* PANEL */
+        #panel { flex: 0 0 52vh; overflow-y: auto; background: var(--surface2); border-top: 1px solid var(--border); }
+        #panel::-webkit-scrollbar { width: 4px; }
+        #panel::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.2); border-radius: 2px; }
+
+        /* SECTION */
+        .sec { border-bottom: 1px solid var(--border); }
+        .sec-hd {
+            display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+            cursor: pointer; user-select: none; background: var(--surface2);
+        }
+        .sec-hd:hover { background: rgba(255,255,255,0.02); }
+        .sec-num {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--gold-dim); border: 1px solid var(--border-gold);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: var(--gold); font-weight: 700; flex-shrink: 0;
+        }
+        .sec-title { font-size: 11px; color: var(--gold); font-weight: 600; text-transform: uppercase; letter-spacing: 2px; flex: 1; }
+        .sec-arrow { font-size: 10px; color: var(--text-muted); transition: transform .2s; }
+        .sec-body { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .sec.collapsed .sec-body { display: none; }
+        .sec.collapsed .sec-arrow { transform: rotate(-90deg); }
+
+        /* FORMS */
+        .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .field { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+        .lbl { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+
+        select, input[type=number], input[type=text] {
+            padding: 6px 8px; border-radius: var(--rs);
+            border: 1px solid var(--border); background: var(--surface3);
+            color: var(--text); font-size: 12px; outline: none; font-family: inherit;
+            width: 100%; transition: border-color .15s;
+        }
+        select:focus, input:focus { border-color: var(--border-gold); }
+        input[type=number] { width: auto; }
+        input[type=range] { flex: 1; min-width: 50px; accent-color: var(--gold); cursor: pointer; }
+        input[type=color] {
+            width: 28px; height: 26px; padding: 0; cursor: pointer;
+            border-radius: var(--rs); border: 1px solid var(--border); background: var(--surface3);
+        }
+        input[type=checkbox] { accent-color: var(--gold); width: 13px; height: 13px; cursor: pointer; }
+        .range-val { font-size: 11px; color: var(--gold-light); min-width: 30px; text-align: right; }
+
+        /* BUTTONS */
+        .btn {
+            padding: 6px 12px; border-radius: var(--rs); border: 1px solid; cursor: pointer;
+            font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+            transition: all .15s; white-space: nowrap; font-family: inherit;
+            display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
+        }
+        .btn:disabled { opacity: .35; cursor: not-allowed; }
+        .btn-gold  { background: var(--gold-dim);  border-color: rgba(201,168,76,.4); color: var(--gold); }
+        .btn-gold:hover:not(:disabled) { background: rgba(201,168,76,.25); }
+        .btn-ghost { background: transparent; border-color: var(--border); color: var(--text-muted); }
+        .btn-ghost:hover:not(:disabled) { border-color: rgba(255,255,255,.2); color: var(--text); }
+        .btn-green { background: var(--green-dim); border-color: rgba(63,185,80,.4); color: var(--green); }
+        .btn-green:hover:not(:disabled) { background: rgba(63,185,80,.25); }
+        .btn-red   { background: var(--red-dim);   border-color: rgba(248,81,73,.4);  color: var(--red); }
+        .btn-red:hover:not(:disabled)   { background: rgba(248,81,73,.25); }
+        .btn-red.recording { background: rgba(220,40,40,.35); color: #fff; animation: pulseRed 1s infinite; }
+        @keyframes pulseRed { 0%,100%{box-shadow:0 0 0 0 rgba(255,60,60,.4)} 50%{box-shadow:0 0 0 5px rgba(255,60,60,0)} }
+
+        /* SEG TOGGLE */
+        .seg { display: flex; border: 1px solid var(--border); border-radius: var(--rs); overflow: hidden; background: var(--surface3); }
+        .seg-btn { padding: 5px 10px; font-size: 11px; cursor: pointer; border: none; background: transparent; color: var(--text-muted); font-family: inherit; font-weight: 500; transition: all .15s; white-space: nowrap; }
+        .seg-btn.active { background: var(--gold-dim); color: var(--gold); font-weight: 700; }
+
+        /* BG PRESETS */
+        .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; }
+        .preset-card {
+            position: relative; border-radius: var(--rs); overflow: hidden;
+            cursor: pointer; aspect-ratio: 16/9; border: 1.5px solid var(--border); transition: all .2s;
+        }
+        .preset-card:hover { border-color: var(--gold); transform: scale(1.04); }
+        .preset-card.active-preset { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,.4); }
+        .preset-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .preset-card .plbl {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,.85), transparent);
+            padding: 10px 4px 3px; font-size: 9px; color: #fff; text-align: center; font-weight: 500;
+        }
+
+        /* THUMBS */
+        #img-thumbs { display: flex; flex-wrap: wrap; gap: 5px; }
+        .thumb {
+            position: relative; width: 50px; height: 30px; border-radius: 4px;
+            overflow: hidden; cursor: pointer; border: 2px solid var(--border); transition: border-color .2s;
+        }
+        .thumb:hover, .thumb.active { border-color: var(--gold); }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .thumb-x {
+            position: absolute; top: -2px; right: -2px; width: 14px; height: 14px;
+            background: var(--red); border-radius: 50%; display: none;
+            align-items: center; justify-content: center; font-size: 9px; color: #fff; font-weight: bold;
+        }
+        .thumb:hover .thumb-x { display: flex; }
+
+        /* FONT CARD */
+        .fc { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--rs); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .fc.ar { border-left: 2px solid var(--gold); }
+        .fc.tr { border-left: 2px solid rgba(100,200,255,.5); }
+        .fc-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+        .fc.ar .fc-title { color: var(--gold); }
+        .fc.tr .fc-title { color: rgba(100,200,255,.8); }
+
+        /* TIP */
+        .tip { font-size: 10px; color: var(--text-muted); line-height: 1.5; padding: 6px 10px; background: var(--surface); border-radius: var(--rs); border: 1px solid var(--border); }
+        .tip b { color: var(--gold-light); }
+
+        /* CHECKBOX LABEL */
+        .ck { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); cursor: pointer; user-select: none; }
+        .ck:hover { color: var(--text); }
+
+        /* ── AUDIO BAR ── */
+        #audio-bar {
+            flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border);
+            padding:  30px 14px; display: flex; flex-direction: column; gap: 6px;
+        }
+        /* Baris 1: audio player full lebar */
+        #audio-row1 { display: flex; align-items: center; gap: 8px; }
+        audio { flex: 1; min-width: 0; height: 30px; border-radius: 4px; }
+        #rec-dot { display: none; align-items: center; gap: 5px; font-size: 10px; color: var(--red); letter-spacing: 1px; flex-shrink: 0; }
+        #rec-dot.on { display: flex; }
+        #rec-dot .dot { width: 7px; height: 7px; background: var(--red); border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+
+        /* Baris 2: tombol render + status — TIDAK WRAP agar selalu terlihat di ponsel */
+        #audio-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+        #audio-row2 .btns { display: flex; gap: 6px; flex-shrink: 0; }
+        #status { font-size: 11px; color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #status.ok { color: var(--green); }
+        #status.err { color: var(--red); }
+        #status.warn { color: #e3b341; }
+        #prog-wrap { height: 2px; background: var(--border); border-radius: 2px; display: none; }
+        #prog-wrap.on { display: block; }
+        #prog-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width .3s; }
     </style>
 </head>
 <body>
 
-    <div id="display-container">
-        <div id="quran-text" class="arabic">Masukkan Nomor Surat</div>
-        <div id="translation-text" class="translation">Lalu klik Load Data</div>
+<div id="header">
+    <div class="logo">✦ Murottal Studio Pro <small>v3.1</small></div>
+    <div class="badge">HD RENDER</div>
+</div>
+
+<div id="top-preview">
+    <div id="preview-wrap" class="landscape">
+        <canvas id="render-canvas"></canvas>
+    </div>
+</div>
+
+<div id="panel">
+
+    <!-- SECTION 1: QARI & SURAT -->
+    <div class="sec" id="s1">
+        <div class="sec-hd" onclick="toggleSec('s1')">
+            <div class="sec-num">1</div>
+            <div class="sec-title">Pilih Qari & Surat</div>
+            <div class="sec-arrow">▾</div>
+        </div>
+        <div class="sec-body">
+            <!-- No. + Nama Surat sejajar + tombol Load -->
+            <div style="display:flex; gap:6px; align-items:flex-end;">
+                <div class="field" style="flex:0 0 60px;">
+                    <div class="lbl">No.</div>
+                    <select id="surah-num" onchange="syncByNum()" style="text-align:center; padding:6px 2px;"></select>
+                </div>
+                <div class="field" style="flex:1; min-width:0;">
+                    <div class="lbl">Nama Surat</div>
+                    <select id="surah-select" onchange="syncByName()"></select>
+                </div>
+                <button class="btn btn-gold" id="btn-load" onclick="loadSurah()" style="align-self:flex-end;">⬇ Load</button>
+            </div>
+            <!-- Qari -->
+            <div class="field">
+                <div class="lbl">Qari / Syeikh</div>
+                <select id="reciter-select"><option value="7">Memuat...</option></select>
+            </div>
+            <span id="surah-name" style="font-size:12px; color:var(--gold-light); font-weight:600; min-height:16px; display:block;"></span>
+        </div>
     </div>
 
-    <div class="controls">
-        <input type="number" id="surah-num" value="1" min="1" max="114">
-        <button onclick="initMurottal()">LOAD DATA</button>
-        <audio id="player" controls></audio>
+    <!-- SECTION 2: BACKGROUND -->
+    <div class="sec" id="s2">
+        <div class="sec-hd" onclick="toggleSec('s2')">
+            <div class="sec-num">2</div>
+            <div class="sec-title">Background & Tampilan</div>
+            <div class="sec-arrow">▾</div>
+        </div>
+        <div class="sec-body">
+
+            <!-- Upload Gambar + Upload Video + Link -->
+            <div class="row">
+                <button class="btn btn-ghost" onclick="document.getElementById('img-upload').click()">🖼 Upload Gambar</button>
+                <input type="file" id="img-upload" accept="image/*" multiple style="display:none">
+                <button class="btn btn-ghost" onclick="document.getElementById('vid-upload').click()">🎬 Upload Video</button>
+                <input type="file" id="vid-upload" accept="video/mp4,video/webm" multiple style="display:none">
+            </div>
+            <div class="row">
+                <input type="text" id="img-url" placeholder="Paste link gambar langsung (.jpg / .png / .webp)" style="flex:1; min-width:100px;">
+                <button class="btn btn-gold" onclick="loadImageFromUrl()">Set</button>
+            </div>
+
+            <div class="tip">
+                💡 <b>Gambar:</b> Paste link langsung dari Unsplash/Pinterest (buka gambar di tab baru, copy URL).<br>
+                🎬 <b>Video:</b> Hanya bisa dari file lokal (upload). Link video diblokir oleh browser (CORS).
+            </div>
+
+            <!-- Thumbnail -->
+            <div id="img-thumbs"></div>
+
+            <!-- Preset -->
+            <div class="lbl" style="margin-top:4px;">✦ Preset Gambar Islami</div>
+            <div class="preset-grid" id="preset-grid"></div>
+
+            <!-- Interval + Gelap -->
+            <div class="row">
+                <div class="lbl" style="flex-shrink:0;">Ganti Setiap</div>
+                <input type="number" id="img-interval" value="10" min="3" max="120" style="width:52px;">
+                <div class="lbl">dtk</div>
+                <div style="flex:1;"></div>
+                <div class="lbl" style="flex-shrink:0;">Gelap</div>
+                <input type="range" id="bg-dim" min="0" max="0.92" step="0.04" value="0.60" style="flex:1; min-width:60px;" oninput="updateSettings(); this.nextElementSibling.textContent=Math.round(this.value*100)+'%'">
+                <div class="range-val">60%</div>
+            </div>
+
+            <!-- Rasio -->
+            <div class="row">
+                <div class="lbl">Rasio:</div>
+                <div class="seg">
+                    <button class="seg-btn active" id="mode-land" onclick="setMode('landscape')">▬ 16:9 YouTube</button>
+                    <button class="seg-btn" id="mode-port" onclick="setMode('portrait')">▮ 9:16 TikTok</button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="status"></div>
 
-    <script>
-        let verses = [];
-        const player = document.getElementById('player');
-        const txtAr = document.getElementById('quran-text');
-        const txtId = document.getElementById('translation-text');
-        const status = document.getElementById('status');
+    <!-- SECTION 3: TEKS -->
+    <div class="sec" id="s3">
+        <div class="sec-hd" onclick="toggleSec('s3')">
+            <div class="sec-num">3</div>
+            <div class="sec-title">Teks Arab & Terjemahan</div>
+            <div class="sec-arrow">▾</div>
+        </div>
+        <div class="sec-body">
+            <!-- Arab -->
+            <div class="fc ar">
+                <div class="fc-title">☪ Teks Arab</div>
+                <div class="row">
+                    <div class="field">
+                        <div class="lbl">Font</div>
+                        <select id="font-ar" onchange="updateSettings()">
+                            <option value="Amiri Quran">Amiri Quran</option>
+                            <option value="Lateef">Lateef</option>
+                            <option value="Scheherazade New">Scheherazade New</option>
+                            <option value="Amiri">Amiri Standar</option>
+                        </select>
+                    </div>
+                    <div class="field" style="flex:0 0 65px;">
+                        <div class="lbl">Ukuran</div>
+                        <input type="number" id="sz-ar" value="70" min="30" max="160" oninput="updateSettings()">
+                    </div>
+                    <input type="color" id="col-ar" value="#ffffff" oninput="updateSettings()" style="margin-top:14px;">
+                </div>
+                <div class="row">
+                    <label class="ck"><input type="checkbox" id="bold-ar" onchange="updateSettings()"> Bold</label>
+                    <label class="ck"><input type="checkbox" id="ital-ar" onchange="updateSettings()"> Italic</label>
+                    <div style="flex:1;"></div>
+                    <div class="lbl">Opasitas</div>
+                    <input type="range" id="alpha-ar" min="0.1" max="1" step="0.05" value="1" oninput="updateSettings(); document.getElementById('alpha-ar-v').textContent=Math.round(this.value*100)+'%'" style="flex:1; min-width:50px;">
+                    <div class="range-val" id="alpha-ar-v">100%</div>
+                </div>
+                <div class="row">
+                    <div class="lbl">Posisi Y</div>
+                    <input type="range" id="pos-ar" min="-300" max="300" value="0" oninput="updateSettings(); document.getElementById('pos-ar-v').textContent=this.value">
+                    <div class="range-val" id="pos-ar-v">0</div>
+                </div>
+            </div>
+            <!-- Terjemahan -->
+            <div class="fc tr">
+                <div class="fc-title">🌐 Terjemahan</div>
+                <div class="row">
+                    <div class="field">
+                        <div class="lbl">Font</div>
+                        <select id="font-tr" onchange="updateSettings()">
+                            <option value="Tajawal">Tajawal</option>
+                            <option value="Roboto">Roboto</option>
+                            <option value="Montserrat">Montserrat</option>
+                            <option value="Inter">Inter</option>
+                        </select>
+                    </div>
+                    <div class="field" style="flex:0 0 65px;">
+                        <div class="lbl">Ukuran</div>
+                        <input type="number" id="sz-tr" value="28" min="12" max="80" oninput="updateSettings()">
+                    </div>
+                    <input type="color" id="col-tr" value="#e8e8e8" oninput="updateSettings()" style="margin-top:14px;">
+                </div>
+                <div class="row">
+                    <label class="ck"><input type="checkbox" id="bold-tr" onchange="updateSettings()"> Bold</label>
+                    <label class="ck"><input type="checkbox" id="ital-tr" onchange="updateSettings()"> Italic</label>
+                    <div style="flex:1;"></div>
+                    <div class="lbl">Opasitas</div>
+                    <input type="range" id="alpha-tr" min="0.1" max="1" step="0.05" value="0.9" oninput="updateSettings(); document.getElementById('alpha-tr-v').textContent=Math.round(this.value*100)+'%'" style="flex:1; min-width:50px;">
+                    <div class="range-val" id="alpha-tr-v">90%</div>
+                </div>
+                <div class="row">
+                    <div class="lbl">Posisi Y</div>
+                    <input type="range" id="pos-tr" min="-300" max="300" value="0" oninput="updateSettings(); document.getElementById('pos-tr-v').textContent=this.value">
+                    <div class="range-val" id="pos-tr-v">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        async function initMurottal() {
-            const id = document.getElementById('surah-num').value;
-            status.innerText = "Menghubungkan ke API...";
-            
-            try {
-                // 1. Ambil Info Audio & Segments (Mishary Rashid)
-                const resAudio = await fetch(`https://api.quran.com/api/v4/chapter_recitations/7/${id}`);
-                const dataAudio = await resAudio.json();
-                player.src = dataAudio.audio_file.audio_url;
+    <!-- SECTION 4: KALIBRASI -->
+    <div class="sec" id="s4">
+        <div class="sec-hd" onclick="toggleSec('s4')">
+            <div class="sec-num">4</div>
+            <div class="sec-title">Kalibrasi Sinkronisasi</div>
+            <div class="sec-arrow">▾</div>
+        </div>
+        <div class="sec-body">
+            <div class="row">
+                <div class="lbl" style="flex-shrink:0;">Geser Waktu (dtk)</div>
+                <input type="number" id="sync-offset" value="0.0" step="0.1" style="width:68px;" oninput="updateSettings()">
+                <div class="tip" style="flex:1;">-0.5 jika teks terlambat · +0.5 jika terlalu cepat</div>
+            </div>
+        </div>
+    </div>
 
-                // 2. Ambil Teks Arab & Terjemahan Sekaligus
-                // Menggunakan endpoint /verses/by_chapter agar data lebih terstruktur
-                const resContent = await fetch(`https://api.quran.com/api/v4/verses/by_chapter/${id}?language=id&words=false&translations=33&fields=text_uthmani`);
-                const dataContent = await resContent.json();
+</div>
 
-                // 3. Ambil Segments Detail untuk Timing
-                const resSegments = await fetch(`https://api.quran.com/api/v4/recitations/7/by_chapter/${id}?segments=true`);
-                const dataSegments = await resSegments.json();
-                const segments = dataSegments.audio_files[0].segments;
+<!-- AUDIO BAR — selalu terlihat di ponsel -->
+<div id="audio-bar">
+    <!-- Baris 1: Audio player penuh lebar -->
+    <div id="audio-row1">
+        <audio id="player" controls crossorigin="anonymous"></audio>
+        <div id="rec-dot"><div class="dot"></div>REC</div>
+    </div>
+    <!-- Baris 2: Tombol render & simpan + status -->
+    <div id="audio-row2">
+        <div class="btns">
+            <button class="btn btn-red" id="btn-rec" onclick="toggleRec()" disabled>⏺ Render HD</button>
+            <button class="btn btn-green" id="btn-dl" onclick="downloadVideo()" disabled style="display:none">⬇ Simpan</button>
+        </div>
+        <div id="status">Menunggu instruksi...</div>
+    </div>
+    <div id="prog-wrap"><div id="prog-fill" style="width:0%"></div></div>
+</div>
 
-                // Gabungkan
-                verses = dataContent.verses.map((v, i) => ({
-                    text: v.text_uthmani,
-                    trans: v.translations[0].text.replace(/<[^>]*>/g, ''),
-                    start: segments[i] ? segments[i][1] / 1000 : 0
-                }));
+<script>
+const FPS = 30;
+const DIMS = { landscape:{W:1280,H:720}, portrait:{W:720,H:1280} };
+const NAMES = {1:'Al-Fatihah',2:'Al-Baqarah',3:'Ali Imran',4:'An-Nisa',5:'Al-Maidah',6:'Al-Anam',7:'Al-Araf',8:'Al-Anfal',9:'At-Tawbah',10:'Yunus',11:'Hud',12:'Yusuf',13:'Ar-Rad',14:'Ibrahim',15:'Al-Hijr',16:'An-Nahl',17:'Al-Isra',18:'Al-Kahf',19:'Maryam',20:'Ta-Ha',21:'Al-Anbiya',22:'Al-Hajj',23:'Al-Muminun',24:'An-Nur',25:'Al-Furqan',26:'Asy-Syuara',27:'An-Naml',28:'Al-Qasas',29:'Al-Ankabut',30:'Ar-Rum',31:'Luqman',32:'As-Sajdah',33:'Al-Ahzab',34:'Saba',35:'Fatir',36:'Yasin',37:'As-Saffat',38:'Sad',39:'Az-Zumar',40:'Gafir',41:'Fussilat',42:'Asy-Syura',43:'Az-Zukhruf',44:'Ad-Dukhan',45:'Al-Jasiyah',46:'Al-Ahqaf',47:'Muhammad',48:'Al-Fath',49:'Al-Hujurat',50:'Qaf',51:'Az-Zariyat',52:'At-Tur',53:'An-Najm',54:'Al-Qamar',55:'Ar-Rahman',56:'Al-Waqiah',57:'Al-Hadid',58:'Al-Mujadilah',59:'Al-Hasyr',60:'Al-Mumtahanah',61:'As-Saff',62:'Al-Jumuah',63:'Al-Munafiqun',64:'At-Tagabun',65:'At-Talaq',66:'At-Tahrim',67:'Al-Mulk',68:'Al-Qalam',69:'Al-Haqqah',70:'Al-Maarij',71:'Nuh',72:'Al-Jinn',73:'Al-Muzzammil',74:'Al-Muddassir',75:'Al-Qiyamah',76:'Al-Insan',77:'Al-Mursalat',78:'An-Naba',79:'An-Naziat',80:'Abasa',81:'At-Takwir',82:'Al-Infitar',83:'Al-Mutaffifin',84:'Al-Insyiqaq',85:'Al-Buruj',86:'At-Tariq',87:'Al-Ala',88:'Al-Gasyiyah',89:'Al-Fajr',90:'Al-Balad',91:'Asy-Syams',92:'Al-Lail',93:'Ad-Duha',94:'Asy-Syarh',95:'At-Tin',96:'Al-Alaq',97:'Al-Qadr',98:'Al-Bayyinah',99:'Az-Zalzalah',100:'Al-Adiyat',101:'Al-Qariah',102:'At-Takasur',103:'Al-Asr',104:'Al-Humazah',105:'Al-Fil',106:'Quraisy',107:'Al-Maun',108:'Al-Kausar',109:'Al-Kafirun',110:'An-Nasr',111:'Al-Lahab',112:'Al-Ikhlas',113:'Al-Falaq',114:'An-Nas'};
 
-                status.innerText = `Berhasil memuat ${verses.length} ayat. Silakan Play.`;
-                txtAr.innerText = "Siap!";
-                txtId.innerText = "Klik tombol Play pada pemutar audio.";
+const PRESETS = [
+    {label:'🕋 Kakbah Malam',  url:'https://images.unsplash.com/photo-1588512285341-c481fb6de19d?w=1280&q=85'},
+    {label:'🕌 Masjid Nabawi', url:'https://images.unsplash.com/photo-1564769662533-4f00a87b4056?w=1280&q=85'},
+    {label:'🌙 Langit Bintang',url:'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=1280&q=85'},
+    {label:'🌅 Fajar Emas',    url:'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1280&q=85'},
+    {label:'🏜 Padang Pasir',  url:'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1280&q=85'},
+    {label:'🌊 Laut Tenang',   url:'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1280&q=85'},
+    {label:'🌿 Alam Hijau',    url:'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1280&q=85'},
+    {label:'🌌 Galaksi Biru',  url:'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1280&q=85'},
+    {label:'🏔 Pegunungan',    url:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&q=85'},
+    {label:'🌺 Taman Bunga',   url:'https://images.unsplash.com/photo-1490750967868-88df5691cc56?w=1280&q=85'},
+    {label:'🕌 Masjid Biru',   url:'https://images.unsplash.com/photo-1542816417-0983c9c9ad53?w=1280&q=85'},
+    {label:'☁ Langit Senja',  url:'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=1280&q=85'},
+];
 
-            } catch (err) {
-                console.error(err);
-                status.innerText = "Error: Pastikan koneksi internet aktif.";
-                txtAr.innerText = "Gagal Memuat";
-            }
+// ── STATE ──
+let mode = 'landscape', W = 1280, H = 720;
+let bgDim = 0.60, syncOffset = 0;
+let fontAr = 'Amiri Quran', szAr = 70, colAr = '#ffffff', boldAr = false, italAr = false, alphaAr = 1.0, posAr = 0;
+let fontTr = 'Tajawal', szTr = 28, colTr = '#e8e8e8', boldTr = false, italTr = false, alphaTr = 0.9, posTr = 0;
+let verses = [], curIdx = -1, fontsReady = false;
+let anim = {arabic:'',trans:'',num:0}, fadeTarget = null, fadeP = 1;
+let stars = [], animT = 0;
+let audioCtx=null, analyser=null, dataArr=null, srcNode=null, destSt=null;
+let recBlob=null, mediaRec=null, chunks=[], isRec=false;
+
+// BG state — gambar + video
+let bgImgList = [], bgImgIdx = 0, bgImgTimer = null, bgImgInterval = 10;
+let bgCurImg = null, bgNxtImg = null, bgFade = 1;
+// Video double buffer
+const vidA = document.createElement('video');
+const vidB = document.createElement('video');
+[vidA, vidB].forEach(v => { v.loop=true; v.muted=true; v.playsinline=true; v.crossOrigin='anonymous'; v.style.display='none'; document.body.appendChild(v); });
+let activeVid = vidA, inactiveVid = vidB, prevVid = null, vidCF = 1;
+let vidList = [], vidIdx = 0, vidInterval = 15;
+let bgMode = 'image'; // 'image' | 'video'
+
+// DOM
+const canvas = document.getElementById('render-canvas');
+const ctx = canvas.getContext('2d');
+const player = document.getElementById('player');
+const statusEl = document.getElementById('status');
+const btnLoad = document.getElementById('btn-load');
+const btnRec  = document.getElementById('btn-rec');
+const btnDl   = document.getElementById('btn-dl');
+const recDot  = document.getElementById('rec-dot');
+const progWrap = document.getElementById('prog-wrap');
+const progFill = document.getElementById('prog-fill');
+const selQari  = document.getElementById('reciter-select');
+const selSurah = document.getElementById('surah-select');
+
+// ── INIT ──
+function initSurahList() {
+    const sn = document.getElementById('surah-num');
+    const ss = document.getElementById('surah-select');
+    sn.innerHTML = ss.innerHTML = '';
+    for (let i=1;i<=114;i++) {
+        const n=NAMES[i]||'Surat '+i;
+        const oN=document.createElement('option'); oN.value=i; oN.textContent=i; sn.appendChild(oN);
+        const oS=document.createElement('option'); oS.value=i; oS.textContent=n; ss.appendChild(oS);
+    }
+}
+function syncByNum() { selSurah.value = document.getElementById('surah-num').value; }
+function syncByName() { document.getElementById('surah-num').value = selSurah.value; }
+
+async function fetchReciters() {
+    try {
+        const d = await (await fetch('https://api.quran.com/api/v4/resources/chapter_reciters')).json();
+        selQari.innerHTML = '';
+        d.reciters.sort((a,b)=>a.name.localeCompare(b.name)).forEach(r => {
+            const o=document.createElement('option'); o.value=r.id;
+            o.textContent=r.name+(r.style?' ('+r.style+')':'');
+            if(r.id===7) o.selected=true; selQari.appendChild(o);
+        });
+    } catch(e){ console.warn('Qari gagal'); }
+}
+
+function buildPresets() {
+    const g = document.getElementById('preset-grid'); g.innerHTML='';
+    PRESETS.forEach((p,i)=>{
+        const c=document.createElement('div'); c.className='preset-card'; c.id='pc'+i;
+        c.innerHTML=`<img src="${p.url}" loading="lazy" crossorigin="anonymous"><div class="plbl">${p.label}</div>`;
+        c.onclick=()=>applyPreset(p.url,i); g.appendChild(c);
+    });
+}
+
+function toggleSec(id) { document.getElementById(id).classList.toggle('collapsed'); }
+
+document.addEventListener('DOMContentLoaded',()=>{ fetchReciters(); initSurahList(); buildPresets(); applyMode('landscape'); });
+
+// ── SETTINGS ──
+function updateSettings() {
+    bgDim   = parseFloat(document.getElementById('bg-dim').value)||0.60;
+    syncOffset = parseFloat(document.getElementById('sync-offset').value)||0;
+    bgImgInterval = parseInt(document.getElementById('img-interval').value)||10;
+    fontAr  = document.getElementById('font-ar').value;
+    szAr    = parseInt(document.getElementById('sz-ar').value)||70;
+    colAr   = document.getElementById('col-ar').value;
+    boldAr  = document.getElementById('bold-ar').checked;
+    italAr  = document.getElementById('ital-ar').checked;
+    alphaAr = parseFloat(document.getElementById('alpha-ar').value)||1;
+    posAr   = parseInt(document.getElementById('pos-ar').value)||0;
+    fontTr  = document.getElementById('font-tr').value;
+    szTr    = parseInt(document.getElementById('sz-tr').value)||28;
+    colTr   = document.getElementById('col-tr').value;
+    boldTr  = document.getElementById('bold-tr').checked;
+    italTr  = document.getElementById('ital-tr').checked;
+    alphaTr = parseFloat(document.getElementById('alpha-tr').value)||0.9;
+    posTr   = parseInt(document.getElementById('pos-tr').value)||0;
+}
+
+// ── BACKGROUND GAMBAR ──
+function loadImageFromUrl() {
+    const url = document.getElementById('img-url').value.trim();
+    if (!url) { setStatus('Masukkan link gambar.', true); return; }
+    applyPreset(url, -1);
+    document.getElementById('img-url').value='';
+}
+function applyPreset(url, idx) {
+    document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('active-preset'));
+    if (idx>=0) document.getElementById('pc'+idx)?.classList.add('active-preset');
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{ bgCurImg=img; bgFade=1; bgMode='image'; setStatus('✓ Background dimuat!',false,true); };
+    img.onerror=()=>setStatus('❌ Gagal memuat gambar.',true);
+    img.src=url; bgImgList=[url]; bgImgIdx=0; clearImgSlide();
+}
+
+document.getElementById('img-upload').addEventListener('change', e=>{
+    const files=Array.from(e.target.files); if(!files.length) return;
+    document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('active-preset'));
+    bgImgList=files.map(f=>URL.createObjectURL(f)); bgImgIdx=0; bgMode='image';
+    loadImgAt(0); renderThumbs();
+    setStatus(`✓ ${files.length} gambar dimuat.`,false,true);
+    if(files.length>1) startImgSlide(); else clearImgSlide();
+});
+
+function loadImgAt(idx) {
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{ if(bgCurImg){bgNxtImg=img;bgFade=0;}else{bgCurImg=img;bgFade=1;} updateThumb(idx); };
+    img.src=bgImgList[idx];
+}
+function startImgSlide() {
+    clearImgSlide(); bgImgInterval=parseInt(document.getElementById('img-interval').value)||10;
+    bgImgTimer=setInterval(()=>{ bgImgIdx=(bgImgIdx+1)%bgImgList.length; loadImgAt(bgImgIdx); }, bgImgInterval*1000);
+}
+function clearImgSlide() { if(bgImgTimer){clearInterval(bgImgTimer);bgImgTimer=null;} }
+
+function renderThumbs() {
+    const c=document.getElementById('img-thumbs'); c.innerHTML='';
+    bgImgList.forEach((src,i)=>{
+        const w=document.createElement('div'); w.className='thumb'; w.id='th'+i;
+        const im=document.createElement('img'); im.src=src; im.crossOrigin='anonymous';
+        const x=document.createElement('div'); x.className='thumb-x'; x.textContent='×';
+        x.onclick=ev=>{ev.stopPropagation();removeThumb(i);};
+        w.appendChild(im); w.appendChild(x);
+        w.onclick=()=>{bgImgIdx=i;loadImgAt(i);}; c.appendChild(w);
+    });
+}
+function removeThumb(i) {
+    bgImgList.splice(i,1);
+    if(!bgImgList.length){bgCurImg=null;bgNxtImg=null;clearImgSlide();}
+    else{bgImgIdx=Math.max(0,Math.min(bgImgIdx,bgImgList.length-1));loadImgAt(bgImgIdx);if(bgImgList.length>1)startImgSlide();else clearImgSlide();}
+    renderThumbs();
+}
+function updateThumb(i) { document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active')); document.getElementById('th'+i)?.classList.add('active'); }
+
+// ── BACKGROUND VIDEO (upload lokal) ──
+document.getElementById('vid-upload').addEventListener('change', e=>{
+    const files=Array.from(e.target.files).slice(0,10); if(!files.length) return;
+    vidList=files.map(f=>URL.createObjectURL(f)); vidIdx=0; bgMode='video';
+    prevVid=null; vidCF=1; activeVid.src=vidList[0]; activeVid.load();
+    activeVid.play().catch(()=>{});
+    player.addEventListener('play',()=>activeVid.play().catch(()=>{}),{once:false});
+    player.addEventListener('pause',()=>activeVid.pause(),{once:false});
+    setStatus(`✓ ${files.length} video dimuat.`,false,true);
+});
+[vidA,vidB].forEach(v=>{
+    v.addEventListener('timeupdate',e=>{
+        if(e.target!==activeVid) return;
+        if(vidList.length>1 && activeVid.currentTime>=vidInterval) swapVid();
+    });
+});
+function swapVid() {
+    if(vidList.length<=1||prevVid) return;
+    const ni=(vidIdx+1)%vidList.length;
+    inactiveVid.src=vidList[ni]; inactiveVid.load();
+    inactiveVid.oncanplay=()=>{
+        inactiveVid.play().catch(()=>{});
+        prevVid=activeVid;
+        [activeVid,inactiveVid]=[inactiveVid,activeVid];
+        vidCF=0; vidIdx=ni; inactiveVid.oncanplay=null;
+    };
+}
+
+// ── DRAW BACKGROUND ──
+function drawBackground() {
+    if (bgMode==='video' && vidList.length>0) {
+        return drawVideoFrame();
+    }
+    if (bgMode==='image' && bgCurImg) {
+        if (bgNxtImg && bgFade<1) {
+            drawImgCover(bgCurImg,1); drawImgCover(bgNxtImg,bgFade);
+            bgFade=Math.min(1,bgFade+0.025);
+            if(bgFade>=1){bgCurImg=bgNxtImg;bgNxtImg=null;}
+        } else { drawImgCover(bgCurImg,1); }
+        return true;
+    }
+    return false;
+}
+function drawVideoFrame() {
+    if(prevVid && vidCF<1){
+        drawVidCover(prevVid,1); const ok=drawVidCover(activeVid,vidCF);
+        vidCF=Math.min(1,vidCF+0.02);
+        if(vidCF>=1){if(prevVid.src)prevVid.pause();prevVid=null;}
+        return ok;
+    }
+    try { return drawVidCover(activeVid,1); } catch(e){ return false; }
+}
+function drawVidCover(vid,alpha) {
+    if(!vid||vid.readyState<2) return false;
+    ctx.save(); ctx.globalAlpha=alpha;
+    const vr=vid.videoWidth/vid.videoHeight, cr=W/H;
+    let dw=W,dh=H,dx=0,dy=0;
+    if(vr>cr){dh=H;dw=H*vr;dx=(W-dw)/2;}else{dw=W;dh=W/vr;dy=(H-dh)/2;}
+    ctx.drawImage(vid,dx,dy,dw,dh); ctx.restore(); return true;
+}
+function drawImgCover(img,alpha) {
+    if(!img||!img.complete||!img.naturalWidth) return;
+    ctx.save(); ctx.globalAlpha=alpha;
+    const ir=img.naturalWidth/img.naturalHeight, cr=W/H;
+    let dw=W,dh=H,dx=0,dy=0;
+    if(ir>cr){dh=H;dw=H*ir;dx=(W-dw)/2;}else{dw=W;dh=W/ir;dy=(H-dh)/2;}
+    try{ctx.drawImage(img,dx,dy,dw,dh);}catch(e){}
+    ctx.restore();
+}
+
+// ── MODE ──
+function applyMode(m) {
+    if(isRec){setStatus('Hentikan render dulu.',true);return;}
+    mode=m; W=DIMS[m].W; H=DIMS[m].H;
+    canvas.width=W; canvas.height=H;
+    document.getElementById('preview-wrap').className=m;
+    document.getElementById('mode-land').classList.toggle('active',m==='landscape');
+    document.getElementById('mode-port').classList.toggle('active',m==='portrait');
+    document.getElementById('sz-ar').value=m==='landscape'?70:60;
+    document.getElementById('sz-tr').value=m==='landscape'?28:24;
+    updateSettings(); initStars();
+}
+function setMode(m){applyMode(m);}
+
+// ── AUDIO ──
+function initAudio() {
+    if(audioCtx) return;
+    const AC=window.AudioContext||window.webkitAudioContext; audioCtx=new AC();
+    analyser=audioCtx.createAnalyser(); analyser.fftSize=256;
+    dataArr=new Uint8Array(analyser.frequencyBinCount);
+    srcNode=audioCtx.createMediaElementSource(player);
+    destSt=audioCtx.createMediaStreamDestination();
+    srcNode.connect(analyser); analyser.connect(audioCtx.destination); analyser.connect(destSt);
+}
+
+function initStars() {
+    stars=Array.from({length:180},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+0.2,phase:Math.random()*Math.PI*2,speed:Math.random()*0.006+0.002}));
+}
+
+async function ensureFonts() {
+    if(fontsReady) return;
+    await document.fonts.load('48px "Amiri Quran"');
+    await document.fonts.load('24px "Tajawal"');
+    fontsReady=true;
+}
+
+// ── RENDER ──
+function renderFrame(t) {
+    requestAnimationFrame(renderFrame); animT=t*0.001;
+    ctx.clearRect(0,0,W,H);
+
+    // Tracking ayat
+    if(!player.paused && verses.length>0) {
+        const now=player.currentTime+syncOffset;
+        let found=curIdx;
+        for(let i=0;i<verses.length;i++){if(now>=verses[i].start&&now<verses[i].end){found=i;break;}}
+        if(found===-1||now>verses[verses.length-1].end){for(let i=verses.length-1;i>=0;i--){if(now>=verses[i].start){found=i;break;}}}
+        if(found!==-1&&found!==curIdx){curIdx=found;fadeTarget={arabic:verses[found].text,trans:verses[found].trans,num:verses[found].num};fadeP=0;}
+    }
+
+    // Background
+    const bgOk=drawBackground();
+    if(bgOk){
+        ctx.fillStyle=`rgba(5,10,14,${bgDim})`; ctx.fillRect(0,0,W,H);
+    } else {
+        ctx.fillStyle='#05080c'; ctx.fillRect(0,0,W,H);
+        const gr=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.6);
+        gr.addColorStop(0,'rgba(10,22,14,0.9)'); gr.addColorStop(1,'rgba(5,8,12,0)');
+        ctx.fillStyle=gr; ctx.fillRect(0,0,W,H);
+        stars.forEach(s=>{
+            const a=0.1+0.4*(0.5+0.5*Math.sin(animT*s.speed*80+s.phase));
+            ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+            ctx.fillStyle=`rgba(201,168,76,${a})`; ctx.fill();
+        });
+    }
+
+    // Visualizer
+    if(analyser&&!player.paused){
+        analyser.getByteFrequencyData(dataArr);
+        const mxH=130,step=2,tot=Math.floor(dataArr.length/step),bw=(W*0.5)/tot;
+        ctx.fillStyle='rgba(201,168,76,0.45)';
+        for(let i=0;i<tot;i++){
+            const bh=(dataArr[i*step]/255)*mxH; if(!bh) continue;
+            ctx.fillRect(W/2+i*bw,H-8-bh,bw-1,bh);
+            ctx.fillRect(W/2-(i+1)*bw,H-8-bh,bw-1,bh);
         }
+    }
 
-        player.ontimeupdate = () => {
-            const now = player.currentTime;
-            // Cari ayat yang start-nya paling mendekati tapi tidak melebihi waktu sekarang
-            const current = verses.filter(v => now >= v.start).pop();
-            
-            if (current && txtAr.innerText !== current.text) {
-                txtAr.innerText = current.text;
-                txtId.innerText = current.trans;
-            }
-        };
-    </script>
+    // Fade teks
+    if(fadeTarget&&fadeP<1) fadeP=Math.min(1,fadeP+0.08);
+    ctx.globalAlpha=fadeTarget?(1-fadeP):1;
+    drawVerse(anim.arabic,anim.trans,anim.num);
+    ctx.globalAlpha=1;
+    if(fadeTarget&&fadeP>=1){anim={...fadeTarget};fadeTarget=null;fadeP=1;}
+}
+
+// ── TEXT ──
+function getLines(text,maxW){
+    const ws=text.split(' '); let ls=[],l='';
+    for(const w of ws){const t=l?l+' '+w:w;if(ctx.measureText(t).width>maxW&&l){ls.push(l);l=w;}else l=t;}
+    if(l)ls.push(l); return ls;
+}
+function drawLines(lines,cx,y0,sz,fam,col,lh,isAr,bold,ital,alpha){
+    ctx.save(); ctx.globalAlpha*=alpha;
+    ctx.font=`${ital?'italic':'normal'} ${bold?'bold':(isAr?'400':'500')} ${sz}px "${fam}"`;
+    ctx.fillStyle=col; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.shadowColor='rgba(0,0,0,0.95)'; ctx.shadowBlur=isAr?18:10; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
+    let y=y0; lines.forEach(l=>{ctx.fillText(l,cx,y);y+=lh;}); ctx.restore();
+}
+function drawVerse(arabic,trans,num){
+    if(!arabic){drawIdle(W/2,H/2);return;}
+    const cx=W/2, mAr=mode==='landscape'?160:80, mTr=mode==='landscape'?220:80;
+    ctx.font=`${italAr?'italic':'normal'} ${boldAr?'bold':'400'} ${szAr}px "${fontAr}"`;
+    const arL=getLines(arabic,W-mAr), arH=szAr*1.85, arBH=arL.length*arH;
+    ctx.font=`${italTr?'italic':'normal'} ${boldTr?'bold':'500'} ${szTr}px "${fontTr}"`;
+    const trL=getLines(trans,W-mTr), trH=szTr*1.5, trBH=trL.length*trH;
+    const gap=mode==='landscape'?55:45;
+    let sY=(H-(arBH+gap+trBH))/2; if(mode==='portrait')sY-=20; if(sY<110)sY=110;
+    const arY=sY+posAr;
+    ctx.save();ctx.globalAlpha*=alphaAr;drawBadge(cx,arY-55,num);ctx.restore();
+    ctx.direction='rtl';
+    drawLines(arL,cx,arY+szAr*0.8,szAr,fontAr,colAr,arH,true,boldAr,italAr,alphaAr);
+    ctx.direction='ltr';
+    const trY=sY+arBH+posTr;
+    ctx.save();ctx.globalAlpha*=alphaTr;drawOrnLine(cx,trY+gap/2-12,mode==='landscape'?220:170);ctx.restore();
+    drawLines(trL,cx,trY+gap+szTr*0.8,szTr,fontTr,colTr,trH,false,boldTr,italTr,alphaTr);
+}
+function drawIdle(cx,cy){
+    ctx.save();ctx.globalAlpha=0.25;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`400 32px "${fontAr}"`;ctx.fillStyle='#c9a84c';ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=15;
+    ctx.fillText('بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ',cx,cy-20);
+    ctx.globalAlpha=0.4;ctx.font=`400 14px "${fontTr}"`;ctx.fillStyle='#9ab8a8';
+    ctx.fillText('Pilih Qari & Surat, lalu klik Load untuk memulai',cx,cy+44);ctx.restore();
+}
+function drawBadge(cx,cy,num){
+    if(!num)return; ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=10;
+    ctx.beginPath();ctx.arc(cx,cy,26,0,Math.PI*2);ctx.strokeStyle='rgba(201,168,76,0.35)';ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,20,0,Math.PI*2);
+    const g=ctx.createRadialGradient(cx,cy-5,0,cx,cy,20);
+    g.addColorStop(0,'rgba(201,168,76,0.9)');g.addColorStop(1,'rgba(150,100,20,0.7)');
+    ctx.fillStyle=g;ctx.fill();
+    ctx.font=`600 15px "${fontAr}"`;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(num.toString().replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]),cx,cy+1);ctx.restore();
+}
+function drawOrnLine(cx,y,hw){
+    const lg=ctx.createLinearGradient(cx-hw,y,cx+hw,y);
+    lg.addColorStop(0,'transparent');lg.addColorStop(0.5,'rgba(201,168,76,0.6)');lg.addColorStop(1,'transparent');
+    ctx.fillStyle=lg;ctx.fillRect(cx-hw,y,hw*2,1.5);
+    ctx.save();ctx.translate(cx,y);ctx.rotate(Math.PI/4);ctx.fillStyle='rgba(201,168,76,0.9)';ctx.fillRect(-3.5,-3.5,7,7);ctx.restore();
+}
+
+// ── LOAD SURAH ──
+async function loadSurah(){
+    initAudio();
+    const id=parseInt(selSurah.value), rid=parseInt(selQari.value);
+    if(id<1||id>114){setStatus('Nomor surat tidak valid.',true);return;}
+    btnLoad.disabled=true; verses=[]; curIdx=-1;
+    progWrap.classList.add('on'); setStatus('Mengunduh audio & sinkronisasi...');
+    try {
+        await ensureFonts(); setProgress(15);
+        const dA=await(await fetch(`https://api.quran.com/api/v4/chapter_recitations/${rid}/${id}?segments=true`)).json();
+        let url=dA.audio_file.audio_url; if(url.startsWith('//'))url='https:'+url; player.src=url;
+        const tms=dA.audio_file.timestamps||[], hasTms=tms.length>0; setProgress(40);
+        let allV=[],pg=1,tp=1;
+        while(pg<=tp){
+            const dV=await(await fetch(`https://api.quran.com/api/v4/verses/by_chapter/${id}?language=id&words=false&translations=33&fields=text_uthmani&per_page=100&page=${pg}`)).json();
+            allV=allV.concat(dV.verses); tp=dV.pagination?.total_pages||1; pg++;
+        }
+        setProgress(80);
+        verses=allV.map((v,i)=>{
+            let s=i*5,e=(i+1)*5;
+            if(hasTms){const t=tms.find(x=>x.verse_key===v.verse_key)||tms[i];if(t){s=t.timestamp_from/1000;e=t.timestamp_to/1000;}}
+            const raw=v.translations?.[0]?.text||'';
+            const cl=raw.replace(/<sup.*?>.*?<\/sup>/gi,'').replace(/<[^>]*>/g,'').replace(/^\d+[\.\)]?\s*/,'').trim();
+            return {num:v.verse_number,text:v.text_uthmani,trans:cl,start:s,end:e};
+        });
+        document.getElementById('surah-name').textContent=`${NAMES[id]} · ${verses.length} Ayat`;
+        anim={arabic:verses[0].text,trans:verses[0].trans,num:verses[0].num};
+        setProgress(100); setTimeout(()=>progWrap.classList.remove('on'),800);
+        setStatus(hasTms?'✓ Data dimuat sempurna. Klik Play!':'⚠ Qari ini belum punya data sinkronisasi.',false,hasTms);
+        if(!hasTms) statusEl.className='warn';
+        btnLoad.disabled=false; btnRec.disabled=false;
+    } catch(e){ setStatus('Error: '+e.message,true); progWrap.classList.remove('on'); btnLoad.disabled=false; }
+}
+
+// ── RECORDING ──
+async function toggleRec(){if(!isRec)await startRec();else stopRec();}
+async function startRec(){
+    chunks=[];recBlob=null;btnDl.style.display='none';btnDl.disabled=true;
+    try{
+        const vs=canvas.captureStream(FPS);
+        const ms=new MediaStream([...vs.getVideoTracks(),...destSt.stream.getAudioTracks()]);
+        const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'video/webm';
+        mediaRec=new MediaRecorder(ms,{mimeType:mime,videoBitsPerSecond:8_000_000});
+        mediaRec.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
+        mediaRec.onstop=finalRec; mediaRec.start(200);
+        isRec=true; btnRec.textContent='⏹ Stop Render'; btnRec.classList.add('recording');
+        recDot.classList.add('on'); setStatus('🔴 Merender... Jangan tutup tab ini.');
+    }catch(e){setStatus('Gagal: '+e.message,true);}
+}
+function stopRec(){
+    if(mediaRec?.state!=='inactive')mediaRec.stop();
+    isRec=false; btnRec.textContent='⏺ Render HD'; btnRec.classList.remove('recording');
+    recDot.classList.remove('on'); setStatus('Memproses video...');
+}
+function finalRec(){
+    recBlob=new Blob(chunks,{type:'video/webm'}); btnDl.disabled=false; btnDl.style.display='';
+    setStatus(`✓ Video ${mode==='portrait'?'9:16':'16:9'} HD selesai (${(recBlob.size/1024/1024).toFixed(1)} MB). Klik Simpan.`,false,true);
+}
+function downloadVideo(){
+    if(!recBlob)return;
+    const u=URL.createObjectURL(recBlob),a=document.createElement('a');
+    a.href=u; a.download=`murottal-S${selSurah.value}-${mode}-HD.webm`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(u),5000);
+}
+function setStatus(msg,err=false,ok=false){statusEl.textContent=msg;statusEl.className=err?'err':ok?'ok':'';}
+function setProgress(p){progFill.style.width=p+'%';}
+
+ensureFonts().then(()=>requestAnimationFrame(renderFrame));
+</script>
 </body>
 </html>
