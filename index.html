@@ -42,7 +42,7 @@
             background: #000; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 16px 48px rgba(0,0,0,.9);
         }
         #preview-wrap.landscape { width: 100%; max-width: 660px; aspect-ratio: 16/9; }
-        #preview-wrap.portrait  { height: 100%; max-height: 840px; aspect-ratio: 9/16; }
+        #preview-wrap.portrait  { height: 100%; max-height: 440px; aspect-ratio: 9/16; }
         #render-canvas { width: 100%; height: 100%; display: block; }
 
         /* PANEL */
@@ -163,9 +163,8 @@
         /* ── AUDIO BAR ── */
         #audio-bar {
             flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border);
-            padding:  30px 14px; display: flex; flex-direction: column; gap: 6px;
+            padding: 8px 14px; display: flex; flex-direction: column; gap: 6px;
         }
-        /* Baris 1: audio player full lebar */
         #audio-row1 { display: flex; align-items: center; gap: 8px; }
         audio { flex: 1; min-width: 0; height: 30px; border-radius: 4px; }
         #rec-dot { display: none; align-items: center; gap: 5px; font-size: 10px; color: var(--red); letter-spacing: 1px; flex-shrink: 0; }
@@ -173,7 +172,6 @@
         #rec-dot .dot { width: 7px; height: 7px; background: var(--red); border-radius: 50%; animation: blink 1s infinite; }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
 
-        /* Baris 2: tombol render + status — TIDAK WRAP agar selalu terlihat di ponsel */
         #audio-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
         #audio-row2 .btns { display: flex; gap: 6px; flex-shrink: 0; }
         #status { font-size: 11px; color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -200,7 +198,6 @@
 
 <div id="panel">
 
-    <!-- SECTION 1: QARI & SURAT -->
     <div class="sec" id="s1">
         <div class="sec-hd" onclick="toggleSec('s1')">
             <div class="sec-num">1</div>
@@ -208,7 +205,6 @@
             <div class="sec-arrow">▾</div>
         </div>
         <div class="sec-body">
-            <!-- No. + Nama Surat sejajar + tombol Load -->
             <div style="display:flex; gap:6px; align-items:flex-end;">
                 <div class="field" style="flex:0 0 60px;">
                     <div class="lbl">No.</div>
@@ -220,7 +216,6 @@
                 </div>
                 <button class="btn btn-gold" id="btn-load" onclick="loadSurah()" style="align-self:flex-end;">⬇ Load</button>
             </div>
-            <!-- Qari -->
             <div class="field">
                 <div class="lbl">Qari / Syeikh</div>
                 <select id="reciter-select"><option value="7">Memuat...</option></select>
@@ -229,7 +224,6 @@
         </div>
     </div>
 
-    <!-- SECTION 2: BACKGROUND -->
     <div class="sec" id="s2">
         <div class="sec-hd" onclick="toggleSec('s2')">
             <div class="sec-num">2</div>
@@ -238,7 +232,6 @@
         </div>
         <div class="sec-body">
 
-            <!-- Upload Gambar + Upload Video + Link -->
             <div class="row">
                 <button class="btn btn-ghost" onclick="document.getElementById('img-upload').click()">🖼 Upload Gambar</button>
                 <input type="file" id="img-upload" accept="image/*" multiple style="display:none">
@@ -255,14 +248,11 @@
                 🎬 <b>Video:</b> Hanya bisa dari file lokal (upload). Link video diblokir oleh browser (CORS).
             </div>
 
-            <!-- Thumbnail -->
             <div id="img-thumbs"></div>
 
-            <!-- Preset -->
             <div class="lbl" style="margin-top:4px;">✦ Preset Gambar Islami</div>
             <div class="preset-grid" id="preset-grid"></div>
 
-            <!-- Interval + Gelap -->
             <div class="row">
                 <div class="lbl" style="flex-shrink:0;">Ganti Setiap</div>
                 <input type="number" id="img-interval" value="10" min="3" max="120" style="width:52px;">
@@ -273,7 +263,6 @@
                 <div class="range-val">60%</div>
             </div>
 
-            <!-- Rasio -->
             <div class="row">
                 <div class="lbl">Rasio:</div>
                 <div class="seg">
@@ -284,7 +273,6 @@
         </div>
     </div>
 
-    <!-- SECTION 3: TEKS -->
     <div class="sec" id="s3">
         <div class="sec-hd" onclick="toggleSec('s3')">
             <div class="sec-num">3</div>
@@ -292,7 +280,6 @@
             <div class="sec-arrow">▾</div>
         </div>
         <div class="sec-body">
-            <!-- Arab -->
             <div class="fc ar">
                 <div class="fc-title">☪ Teks Arab</div>
                 <div class="row">
@@ -325,7 +312,6 @@
                     <div class="range-val" id="pos-ar-v">0</div>
                 </div>
             </div>
-            <!-- Terjemahan -->
             <div class="fc tr">
                 <div class="fc-title">🌐 Terjemahan</div>
                 <div class="row">
@@ -361,7 +347,6 @@
         </div>
     </div>
 
-    <!-- SECTION 4: KALIBRASI -->
     <div class="sec" id="s4">
         <div class="sec-hd" onclick="toggleSec('s4')">
             <div class="sec-num">4</div>
@@ -379,14 +364,11 @@
 
 </div>
 
-<!-- AUDIO BAR — selalu terlihat di ponsel -->
 <div id="audio-bar">
-    <!-- Baris 1: Audio player penuh lebar -->
     <div id="audio-row1">
         <audio id="player" controls crossorigin="anonymous"></audio>
         <div id="rec-dot"><div class="dot"></div>REC</div>
     </div>
-    <!-- Baris 2: Tombol render & simpan + status -->
     <div id="audio-row2">
         <div class="btns">
             <button class="btn btn-red" id="btn-rec" onclick="toggleRec()" disabled>⏺ Render HD</button>
@@ -417,7 +399,6 @@ const PRESETS = [
     {label:'☁ Langit Senja',  url:'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=1280&q=85'},
 ];
 
-// ── STATE ──
 let mode = 'landscape', W = 1280, H = 720;
 let bgDim = 0.60, syncOffset = 0;
 let fontAr = 'Amiri Quran', szAr = 70, colAr = '#ffffff', boldAr = false, italAr = false, alphaAr = 1.0, posAr = 0;
@@ -428,18 +409,15 @@ let stars = [], animT = 0;
 let audioCtx=null, analyser=null, dataArr=null, srcNode=null, destSt=null;
 let recBlob=null, mediaRec=null, chunks=[], isRec=false;
 
-// BG state — gambar + video
 let bgImgList = [], bgImgIdx = 0, bgImgTimer = null, bgImgInterval = 10;
 let bgCurImg = null, bgNxtImg = null, bgFade = 1;
-// Video double buffer
 const vidA = document.createElement('video');
 const vidB = document.createElement('video');
 [vidA, vidB].forEach(v => { v.loop=true; v.muted=true; v.playsinline=true; v.crossOrigin='anonymous'; v.style.display='none'; document.body.appendChild(v); });
 let activeVid = vidA, inactiveVid = vidB, prevVid = null, vidCF = 1;
 let vidList = [], vidIdx = 0, vidInterval = 15;
-let bgMode = 'image'; // 'image' | 'video'
+let bgMode = 'image';
 
-// DOM
 const canvas = document.getElementById('render-canvas');
 const ctx = canvas.getContext('2d');
 const player = document.getElementById('player');
@@ -453,7 +431,6 @@ const progFill = document.getElementById('prog-fill');
 const selQari  = document.getElementById('reciter-select');
 const selSurah = document.getElementById('surah-select');
 
-// ── INIT ──
 function initSurahList() {
     const sn = document.getElementById('surah-num');
     const ss = document.getElementById('surah-select');
@@ -492,7 +469,6 @@ function toggleSec(id) { document.getElementById(id).classList.toggle('collapsed
 
 document.addEventListener('DOMContentLoaded',()=>{ fetchReciters(); initSurahList(); buildPresets(); applyMode('landscape'); });
 
-// ── SETTINGS ──
 function updateSettings() {
     bgDim   = parseFloat(document.getElementById('bg-dim').value)||0.60;
     syncOffset = parseFloat(document.getElementById('sync-offset').value)||0;
@@ -513,7 +489,6 @@ function updateSettings() {
     posTr   = parseInt(document.getElementById('pos-tr').value)||0;
 }
 
-// ── BACKGROUND GAMBAR ──
 function loadImageFromUrl() {
     const url = document.getElementById('img-url').value.trim();
     if (!url) { setStatus('Masukkan link gambar.', true); return; }
@@ -568,7 +543,6 @@ function removeThumb(i) {
 }
 function updateThumb(i) { document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active')); document.getElementById('th'+i)?.classList.add('active'); }
 
-// ── BACKGROUND VIDEO (upload lokal) ──
 document.getElementById('vid-upload').addEventListener('change', e=>{
     const files=Array.from(e.target.files).slice(0,10); if(!files.length) return;
     vidList=files.map(f=>URL.createObjectURL(f)); vidIdx=0; bgMode='video';
@@ -596,7 +570,6 @@ function swapVid() {
     };
 }
 
-// ── DRAW BACKGROUND ──
 function drawBackground() {
     if (bgMode==='video' && vidList.length>0) {
         return drawVideoFrame();
@@ -638,7 +611,6 @@ function drawImgCover(img,alpha) {
     ctx.restore();
 }
 
-// ── MODE ──
 function applyMode(m) {
     if(isRec){setStatus('Hentikan render dulu.',true);return;}
     mode=m; W=DIMS[m].W; H=DIMS[m].H;
@@ -652,7 +624,6 @@ function applyMode(m) {
 }
 function setMode(m){applyMode(m);}
 
-// ── AUDIO ──
 function initAudio() {
     if(audioCtx) return;
     const AC=window.AudioContext||window.webkitAudioContext; audioCtx=new AC();
@@ -674,12 +645,10 @@ async function ensureFonts() {
     fontsReady=true;
 }
 
-// ── RENDER ──
 function renderFrame(t) {
     requestAnimationFrame(renderFrame); animT=t*0.001;
     ctx.clearRect(0,0,W,H);
 
-    // Tracking ayat
     if(!player.paused && verses.length>0) {
         const now=player.currentTime+syncOffset;
         let found=curIdx;
@@ -688,7 +657,6 @@ function renderFrame(t) {
         if(found!==-1&&found!==curIdx){curIdx=found;fadeTarget={arabic:verses[found].text,trans:verses[found].trans,num:verses[found].num};fadeP=0;}
     }
 
-    // Background
     const bgOk=drawBackground();
     if(bgOk){
         ctx.fillStyle=`rgba(5,10,14,${bgDim})`; ctx.fillRect(0,0,W,H);
@@ -704,7 +672,6 @@ function renderFrame(t) {
         });
     }
 
-    // Visualizer
     if(analyser&&!player.paused){
         analyser.getByteFrequencyData(dataArr);
         const mxH=130,step=2,tot=Math.floor(dataArr.length/step),bw=(W*0.5)/tot;
@@ -716,7 +683,6 @@ function renderFrame(t) {
         }
     }
 
-    // Fade teks
     if(fadeTarget&&fadeP<1) fadeP=Math.min(1,fadeP+0.08);
     ctx.globalAlpha=fadeTarget?(1-fadeP):1;
     drawVerse(anim.arabic,anim.trans,anim.num);
@@ -724,7 +690,6 @@ function renderFrame(t) {
     if(fadeTarget&&fadeP>=1){anim={...fadeTarget};fadeTarget=null;fadeP=1;}
 }
 
-// ── TEXT ──
 function getLines(text,maxW){
     const ws=text.split(' '); let ls=[],l='';
     for(const w of ws){const t=l?l+' '+w:w;if(ctx.measureText(t).width>maxW&&l){ls.push(l);l=w;}else l=t;}
@@ -737,9 +702,13 @@ function drawLines(lines,cx,y0,sz,fam,col,lh,isAr,bold,ital,alpha){
     ctx.shadowColor='rgba(0,0,0,0.95)'; ctx.shadowBlur=isAr?18:10; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
     let y=y0; lines.forEach(l=>{ctx.fillText(l,cx,y);y+=lh;}); ctx.restore();
 }
+
 function drawVerse(arabic,trans,num){
     if(!arabic){drawIdle(W/2,H/2);return;}
-    const cx=W/2, mAr=mode==='landscape'?160:80, mTr=mode==='landscape'?220:80;
+    
+    // Margin disesuaikan agar badge nomor tidak keluar dari layar
+    const cx=W/2, mAr=mode==='landscape'?220:140, mTr=mode==='landscape'?220:80;
+    
     ctx.font=`${italAr?'italic':'normal'} ${boldAr?'bold':'400'} ${szAr}px "${fontAr}"`;
     const arL=getLines(arabic,W-mAr), arH=szAr*1.85, arBH=arL.length*arH;
     ctx.font=`${italTr?'italic':'normal'} ${boldTr?'bold':'500'} ${szTr}px "${fontTr}"`;
@@ -747,14 +716,30 @@ function drawVerse(arabic,trans,num){
     const gap=mode==='landscape'?55:45;
     let sY=(H-(arBH+gap+trBH))/2; if(mode==='portrait')sY-=20; if(sY<110)sY=110;
     const arY=sY+posAr;
-    ctx.save();ctx.globalAlpha*=alphaAr;drawBadge(cx,arY-55,num);ctx.restore();
+
+    // Gambar teks Arab
     ctx.direction='rtl';
     drawLines(arL,cx,arY+szAr*0.8,szAr,fontAr,colAr,arH,true,boldAr,italAr,alphaAr);
     ctx.direction='ltr';
+
+    // Perhitungan posisi badge nomor ayat di kiri baris terakhir
+    ctx.font=`${italAr?'italic':'normal'} ${boldAr?'bold':'400'} ${szAr}px "${fontAr}"`;
+    const lastLine = arL[arL.length-1];
+    const lastW = ctx.measureText(lastLine).width;
+    const badgeX = cx - (lastW / 2) - 35; // 35px adalah jarak margin badge ke teks 
+    const badgeY = arY + szAr*0.8 + (arL.length - 1)*arH - (szAr * 0.3); // menyesuaikan tinggi baseline
+
+    ctx.save();
+    ctx.globalAlpha*=alphaAr;
+    drawBadge(badgeX, badgeY, num);
+    ctx.restore();
+
+    // Gambar Terjemahan
     const trY=sY+arBH+posTr;
     ctx.save();ctx.globalAlpha*=alphaTr;drawOrnLine(cx,trY+gap/2-12,mode==='landscape'?220:170);ctx.restore();
     drawLines(trL,cx,trY+gap+szTr*0.8,szTr,fontTr,colTr,trH,false,boldTr,italTr,alphaTr);
 }
+
 function drawIdle(cx,cy){
     ctx.save();ctx.globalAlpha=0.25;ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.font=`400 32px "${fontAr}"`;ctx.fillStyle='#c9a84c';ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=15;
@@ -762,6 +747,7 @@ function drawIdle(cx,cy){
     ctx.globalAlpha=0.4;ctx.font=`400 14px "${fontTr}"`;ctx.fillStyle='#9ab8a8';
     ctx.fillText('Pilih Qari & Surat, lalu klik Load untuk memulai',cx,cy+44);ctx.restore();
 }
+
 function drawBadge(cx,cy,num){
     if(!num)return; ctx.save();
     ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=10;
@@ -773,6 +759,7 @@ function drawBadge(cx,cy,num){
     ctx.font=`600 15px "${fontAr}"`;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(num.toString().replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]),cx,cy+1);ctx.restore();
 }
+
 function drawOrnLine(cx,y,hw){
     const lg=ctx.createLinearGradient(cx-hw,y,cx+hw,y);
     lg.addColorStop(0,'transparent');lg.addColorStop(0.5,'rgba(201,168,76,0.6)');lg.addColorStop(1,'transparent');
@@ -780,7 +767,6 @@ function drawOrnLine(cx,y,hw){
     ctx.save();ctx.translate(cx,y);ctx.rotate(Math.PI/4);ctx.fillStyle='rgba(201,168,76,0.9)';ctx.fillRect(-3.5,-3.5,7,7);ctx.restore();
 }
 
-// ── LOAD SURAH ──
 async function loadSurah(){
     initAudio();
     const id=parseInt(selSurah.value), rid=parseInt(selQari.value);
@@ -814,7 +800,6 @@ async function loadSurah(){
     } catch(e){ setStatus('Error: '+e.message,true); progWrap.classList.remove('on'); btnLoad.disabled=false; }
 }
 
-// ── RECORDING ──
 async function toggleRec(){if(!isRec)await startRec();else stopRec();}
 async function startRec(){
     chunks=[];recBlob=null;btnDl.style.display='none';btnDl.disabled=true;
