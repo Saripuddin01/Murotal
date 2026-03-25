@@ -17,7 +17,7 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
-            height: 100dvh; /* PERBAIKAN: Menggunakan dvh agar tidak tertutup navbar bawah HP */
+            height: 100dvh; 
             width: 100vw; overflow: hidden;
             background: var(--surface); color: var(--text);
             font-family: 'Inter', 'Tajawal', sans-serif;
@@ -164,12 +164,11 @@
         /* ── AUDIO BAR ── */
         #audio-bar {
             flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border);
-            padding: 10px 14px 16px; /* PERBAIKAN: Padding bawah ditambah agar tidak tertutup */
+            padding: 10px 14px 16px;
             display: flex; flex-direction: column; gap: 10px;
         }
         #audio-row1 { display: flex; align-items: center; gap: 8px; }
         
-        /* PERBAIKAN: Tinggi audio diubah menjadi minimal 44px agar player bawaan muncul penuh */
         audio { flex: 1; min-width: 0; height: 44px; border-radius: 4px; outline: none; }
         
         #rec-dot { display: none; align-items: center; gap: 5px; font-size: 10px; color: var(--red); letter-spacing: 1px; flex-shrink: 0; }
@@ -260,7 +259,7 @@
 
             <div class="row">
                 <div class="lbl" style="flex-shrink:0;">Ganti Setiap</div>
-                <input type="number" id="img-interval" value="10" min="3" max="120" style="width:52px;">
+                <input type="number" id="img-interval" value="10" min="3" max="120" style="width:52px;" onchange="updateSettings()">
                 <div class="lbl">dtk</div>
                 <div style="flex:1;"></div>
                 <div class="lbl" style="flex-shrink:0;">Gelap</div>
@@ -414,14 +413,18 @@ let stars = [], animT = 0;
 let audioCtx=null, analyser=null, dataArr=null, srcNode=null, destSt=null;
 let recBlob=null, mediaRec=null, chunks=[], isRec=false;
 
+let bgMode = 'image';
+
+// Image Variables
 let bgImgList = [], bgImgIdx = 0, bgImgTimer = null, bgImgInterval = 10;
 let bgCurImg = null, bgNxtImg = null, bgFade = 1;
+
+// Video Variables
 const vidA = document.createElement('video');
 const vidB = document.createElement('video');
 [vidA, vidB].forEach(v => { v.loop=true; v.muted=true; v.playsinline=true; v.crossOrigin='anonymous'; v.style.display='none'; document.body.appendChild(v); });
 let activeVid = vidA, inactiveVid = vidB, prevVid = null, vidCF = 1;
-let vidList = [], vidIdx = 0, vidInterval = 15;
-let bgMode = 'image';
+let vidList = [], vidIdx = 0, vidTimer = null, vidInterval = 10; 
 
 const canvas = document.getElementById('render-canvas');
 const ctx = canvas.getContext('2d');
@@ -474,10 +477,20 @@ function toggleSec(id) { document.getElementById(id).classList.toggle('collapsed
 
 document.addEventListener('DOMContentLoaded',()=>{ fetchReciters(); initSurahList(); buildPresets(); applyMode('landscape'); });
 
+// PERBAIKAN: Fungsi Update Settings sekarang me-restart timer jika waktu diubah
 function updateSettings() {
     bgDim   = parseFloat(document.getElementById('bg-dim').value)||0.60;
     syncOffset = parseFloat(document.getElementById('sync-offset').value)||0;
-    bgImgInterval = parseInt(document.getElementById('img-interval').value)||10;
+    
+    const newInterval = parseInt(document.getElementById('img-interval').value)||10;
+    if (bgImgInterval !== newInterval || vidInterval !== newInterval) {
+        bgImgInterval = newInterval;
+        vidInterval = newInterval;
+        // Restart timer jika waktu input diubah oleh user
+        if (bgMode === 'image' && bgImgList.length > 1) startImgSlide();
+        if (bgMode === 'video' && vidList.length > 1) startVidSlide();
+    }
+    
     fontAr  = document.getElementById('font-ar').value;
     szAr    = parseInt(document.getElementById('sz-ar').value)||70;
     colAr   = document.getElementById('col-ar').value;
@@ -503,8 +516,12 @@ function loadImageFromUrl() {
 function applyPreset(url, idx) {
     document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('active-preset'));
     if (idx>=0) document.getElementById('pc'+idx)?.classList.add('active-preset');
+    
+    clearVidSlide(); // Pastikan timer video mati jika sebelumnya pakai video
+    bgMode='image';
+    
     const img=new Image(); img.crossOrigin='anonymous';
-    img.onload=()=>{ bgCurImg=img; bgFade=1; bgMode='image'; setStatus('✓ Background dimuat!',false,true); };
+    img.onload=()=>{ bgCurImg=img; bgFade=1; setStatus('✓ Background dimuat!',false,true); };
     img.onerror=()=>setStatus('❌ Gagal memuat gambar.',true);
     img.src=url; bgImgList=[url]; bgImgIdx=0; clearImgSlide();
 }
@@ -512,7 +529,11 @@ function applyPreset(url, idx) {
 document.getElementById('img-upload').addEventListener('change', e=>{
     const files=Array.from(e.target.files); if(!files.length) return;
     document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('active-preset'));
-    bgImgList=files.map(f=>URL.createObjectURL(f)); bgImgIdx=0; bgMode='image';
+    
+    clearVidSlide(); // Matikan timer video
+    bgMode='image';
+    
+    bgImgList=files.map(f=>URL.createObjectURL(f)); bgImgIdx=0;
     loadImgAt(0); renderThumbs();
     setStatus(`✓ ${files.length} gambar dimuat.`,false,true);
     if(files.length>1) startImgSlide(); else clearImgSlide();
@@ -524,7 +545,7 @@ function loadImgAt(idx) {
     img.src=bgImgList[idx];
 }
 function startImgSlide() {
-    clearImgSlide(); bgImgInterval=parseInt(document.getElementById('img-interval').value)||10;
+    clearImgSlide(); bgImgInterval = parseInt(document.getElementById('img-interval').value)||10;
     bgImgTimer=setInterval(()=>{ bgImgIdx=(bgImgIdx+1)%bgImgList.length; loadImgAt(bgImgIdx); }, bgImgInterval*1000);
 }
 function clearImgSlide() { if(bgImgTimer){clearInterval(bgImgTimer);bgImgTimer=null;} }
@@ -550,34 +571,52 @@ function updateThumb(i) { document.querySelectorAll('.thumb').forEach(t=>t.class
 
 document.getElementById('vid-upload').addEventListener('change', e=>{
     const files=Array.from(e.target.files).slice(0,10); if(!files.length) return;
-    vidList=files.map(f=>URL.createObjectURL(f)); vidIdx=0; bgMode='video';
+    
+    clearImgSlide(); // Matikan timer gambar
+    bgMode='video';
+    
+    vidList=files.map(f=>URL.createObjectURL(f)); vidIdx=0;
     prevVid=null; vidCF=1; activeVid.src=vidList[0]; activeVid.load();
     activeVid.play().catch(()=>{});
     player.addEventListener('play',()=>activeVid.play().catch(()=>{}),{once:false});
     player.addEventListener('pause',()=>activeVid.pause(),{once:false});
+    
     setStatus(`✓ ${files.length} video dimuat.`,false,true);
+    if(files.length>1) startVidSlide(); else clearVidSlide();
 });
-[vidA,vidB].forEach(v=>{
-    v.addEventListener('timeupdate',e=>{
-        if(e.target!==activeVid) return;
-        if(vidList.length>1 && activeVid.currentTime>=vidInterval) swapVid();
-    });
-});
+
+// PERBAIKAN: Mekanisme Timer Video dipisahkan dari durasi video asli
+function startVidSlide() {
+    clearVidSlide(); 
+    vidInterval = parseInt(document.getElementById('img-interval').value) || 10;
+    vidTimer = setInterval(() => { swapVid(); }, vidInterval * 1000);
+}
+
+function clearVidSlide() { 
+    if(vidTimer) { clearInterval(vidTimer); vidTimer = null; } 
+}
+
 function swapVid() {
-    if(vidList.length<=1||prevVid) return;
+    if(vidList.length<=1 || prevVid) return; // Abaikan jika sedang proses transisi
     const ni=(vidIdx+1)%vidList.length;
     inactiveVid.src=vidList[ni]; inactiveVid.load();
     inactiveVid.oncanplay=()=>{
         inactiveVid.play().catch(()=>{});
         prevVid=activeVid;
-        [activeVid,inactiveVid]=[inactiveVid,activeVid];
-        vidCF=0; vidIdx=ni; inactiveVid.oncanplay=null;
+        activeVid=inactiveVid;
+        inactiveVid=prevVid;
+        vidCF=0; vidIdx=ni; activeVid.oncanplay=null;
     };
 }
 
 function drawBackground() {
     if (bgMode==='video' && vidList.length>0) {
-        return drawVideoFrame();
+        const ok = drawVideoFrame();
+        if(!ok) {
+            ctx.fillStyle = '#05080c';
+            ctx.fillRect(0,0,W,H);
+        }
+        return true; 
     }
     if (bgMode==='image' && bgCurImg) {
         if (bgNxtImg && bgFade<1) {
@@ -589,15 +628,18 @@ function drawBackground() {
     }
     return false;
 }
+
 function drawVideoFrame() {
     if(prevVid && vidCF<1){
-        drawVidCover(prevVid,1); const ok=drawVidCover(activeVid,vidCF);
-        vidCF=Math.min(1,vidCF+0.02);
-        if(vidCF>=1){if(prevVid.src)prevVid.pause();prevVid=null;}
-        return ok;
+        drawVidCover(prevVid, 1);
+        drawVidCover(activeVid, vidCF);
+        vidCF = Math.min(1, vidCF + 0.02);
+        if(vidCF >= 1){ if(prevVid.src)prevVid.pause(); prevVid=null; }
+        return true;
     }
     try { return drawVidCover(activeVid,1); } catch(e){ return false; }
 }
+
 function drawVidCover(vid,alpha) {
     if(!vid||vid.readyState<2) return false;
     ctx.save(); ctx.globalAlpha=alpha;
@@ -606,6 +648,7 @@ function drawVidCover(vid,alpha) {
     if(vr>cr){dh=H;dw=H*vr;dx=(W-dw)/2;}else{dw=W;dh=W/vr;dy=(H-dh)/2;}
     ctx.drawImage(vid,dx,dy,dw,dh); ctx.restore(); return true;
 }
+
 function drawImgCover(img,alpha) {
     if(!img||!img.complete||!img.naturalWidth) return;
     ctx.save(); ctx.globalAlpha=alpha;
